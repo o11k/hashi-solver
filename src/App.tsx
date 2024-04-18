@@ -1,35 +1,24 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react"
+import HashiBoardInput from "./HashiBoardInput";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+    const [width, setWidth] = useState(8);
+    const [height, setHeight] = useState(8);
 
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    const [board, setBoard] = useState<(number | null)[][]>([])
+
+    return (<main>
+        <table><tbody>
+            <tr>
+                <td><label htmlFor="width">Width</label></td>
+                <td><input type="number" name="width" min={1} value={width} onChange={(e) => setWidth(parseInt(e.target.value) || 8)} /></td>
+            </tr>
+            <tr>
+                <td><label htmlFor="height">Height</label></td>
+                <td><input type="number" name="height" min={1} value={height} onChange={(e) => setHeight(parseInt(e.target.value) || 8)} /></td>
+            </tr>
+        </tbody></table>
+
+        <HashiBoardInput width={width} height={height} onChange={setBoard}></HashiBoardInput>
+    </main>)
 }
-
-export default App

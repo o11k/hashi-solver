@@ -1,0 +1,14 @@
+table.hashiBoardInput {
+    border-collapse: collapse;
+}
+table.hashiBoardInput td {
+    padding: 0;
+    margin: 0;
+}
+
+table.hashiBoardInput td > input {
+    /* border: 0; */
+    width: 1rem;
+    height: 1rem;
+    padding: 0.2rem;
+}
