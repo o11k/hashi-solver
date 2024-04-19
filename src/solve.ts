@@ -56,14 +56,28 @@ export default function solve(board: Board): null | Bridge[] {
         solver.require(Logic.exactlyOne(noBridge, dir1, dir2))
     }
     // All islands but one must have at least one bridge "pointing into" them
-    for (const [islandStr, island] of Object.entries(parsedBoard.islands).slice(1)) {
+    const islandEntries = Object.entries(parsedBoard.islands)
+    const rootIsland = islandEntries[0][0]
+    for (const [islandStr, island] of islandEntries.slice(1)) {
         const bridgesPointingIn = island.bridges.map(bridge => Encode.str.directionTerm(bridge, islandStr, true))
         solver.require(Logic.or(bridgesPointingIn))
     }
 
-    const solution = solver.solve()
+    // Try to solve
+    let solution = solver.solve()
     if (solution === null) {
         return null
+    }
+
+    // Forbid illegal cycles until valid solution
+    let illegalCycle = findIllegalCycle(getSolutionGraph(solution.getTrueVars()), rootIsland)
+    while (illegalCycle !== null) {
+        solver.forbid(Logic.and(illegalCycle))
+        solution = solver.solve()
+        if (solution === null) {
+            return null
+        }
+        illegalCycle = findIllegalCycle(getSolutionGraph(solution.getTrueVars()), rootIsland)
     }
 
     return solution.getTrueVars()
@@ -225,6 +239,83 @@ function parseBoard(board: Board): ParsedBoard {
     return result
 }
 
+
+function findIllegalCycle(graph: SolutionGraph, rootIsland: string): null | string[] {
+    const visited = new Set<string>()
+    const stack: string[] = []
+    const stackSet = new Set<string>()
+
+    function dfs(vertex: string, returnOnCycle: boolean): null | string[] {
+        if (visited.has(vertex)) {
+            return null
+        }
+
+        visited.add(vertex)
+        stack.push(vertex)
+        stackSet.add(vertex)
+
+        for (const neighbor in graph[vertex]) {
+            if (visited.has(neighbor)) {
+                if (returnOnCycle && stackSet.has(neighbor)) {
+                    return stack.slice(stack.indexOf(neighbor))
+                }
+            } else {
+                const neighborResult = dfs(neighbor, returnOnCycle)
+                if (neighborResult !== null) {
+                    return neighborResult
+                }
+            }
+        }
+
+        stack.pop()
+        stackSet.delete(vertex)
+
+        return null
+    }
+
+    // Cycles in the root's component are legal
+    dfs(rootIsland, false)
+
+    // Find illegal cycles
+    for (const vertex in graph) {
+        const componentResult = dfs(vertex, true)
+        if (componentResult !== null) {
+            const edges: string[] = []
+            for (let i=0; i<componentResult.length-1; i++) {
+                edges.push(graph[componentResult[i]][componentResult[i+1]])
+            }
+            edges.push(graph[componentResult[componentResult.length-1]][componentResult[0]])
+            return edges
+        }
+    }
+
+    return null
+}
+
+
+interface SolutionGraph {
+    [fromIsland: string]: {[toIsland: string]: string /* edge */}
+}
+
+function getSolutionGraph(trueVars: string[]): SolutionGraph {
+    const result: SolutionGraph = {}
+
+    for (const term of trueVars) {
+        const value = Encode.obj.directionTerm(term)
+        if (value === null) {
+            continue
+        }
+
+        const [from, to] = value.pointingToDst ? [value.bridge.src, value.bridge.dst] : [value.bridge.dst, value.bridge.src]
+        const [fromStr, toStr] = [Encode.str.island(from.row, from.col), Encode.str.island(to.row, to.col)]
+        if (!(fromStr in result)) {
+            result[fromStr] = {}
+        }
+        result[fromStr][toStr] = term
+    }
+
+    return result
+}
 
 
 // Pre-calculated list of all bridge values, given value of island and number of possible bridges
