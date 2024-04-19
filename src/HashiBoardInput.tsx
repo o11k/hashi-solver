@@ -13,10 +13,10 @@ type Props = {
 export default function HashiBoardInput({width, height, onChange}: Props) {
     const [board, setBoard] = useState<Board>([])
     const cellRefs = useRef<RefObject<HTMLInputElement>[][]>([])
-    
+
     const [focusRow, setFocusRow] = useState<null | number>(null)
     const [focusCol, setFocusCol] = useState<null | number>(null)
-    
+
     // Re-create board when dimentions change
     useEffect(() => {
         setBoard(create2DArray(height, width, null))

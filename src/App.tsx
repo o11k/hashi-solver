@@ -1,6 +1,8 @@
 import { useState } from "react"
 import HashiBoardInput from "./HashiBoardInput";
-import { Board } from "./types";
+import { Board, Bridge } from "./types";
+import solve from "./solve";
+import HashiBoardOutput from "./HashiBoardOutput";
 
 export default function App() {
     const [width, setWidth] = useState(8);
@@ -8,7 +10,8 @@ export default function App() {
 
     const [board, setBoard] = useState<Board>([])
 
-    
+    const [solution, setSolution] = useState<null | Bridge[]>(null)
+
     return (<main>
         <table><tbody>
             <tr>
@@ -21,6 +24,11 @@ export default function App() {
             </tr>
         </tbody></table>
 
-        <HashiBoardInput width={width} height={height} onChange={setBoard}></HashiBoardInput>
+
+        <HashiBoardInput width={width} height={height} onChange={setBoard} />
+
+        <button onClick={() => setSolution(solve(board))}>Solve</button>
+        <br />
+        {solution === null ? <p>No Solution</p> : <HashiBoardOutput board={board} bridges={solution} />}
     </main>)
 }
