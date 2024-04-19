@@ -10,7 +10,7 @@ export default function App() {
 
     const [board, setBoard] = useState<Board>([])
 
-    const [solution, setSolution] = useState<null | Bridge[]>(null)
+    const [solution, setSolution] = useState<null | {board: Board, bridges: Bridge[]}>(null)
 
     return (<main>
         <table><tbody>
@@ -27,8 +27,11 @@ export default function App() {
 
         <HashiBoardInput width={width} height={height} onChange={setBoard} />
 
-        <button onClick={() => setSolution(solve(board))}>Solve</button>
+        <button onClick={() => {
+            const bridges = solve(board);
+            setSolution(bridges === null ? null : {board, bridges})
+        }}>Solve</button>
         <br />
-        {solution === null ? <p>No Solution</p> : <HashiBoardOutput board={board} bridges={solution} />}
+        {solution === null ? <p>No Solution</p> : <HashiBoardOutput board={solution.board} bridges={solution.bridges} />}
     </main>)
 }
