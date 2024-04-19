@@ -15,6 +15,14 @@ export default function solve(board: Board): null | Bridge[] {
         solver.require(Logic.exactlyOne(options))
     }
 
+    // Bridges don't overlap
+    for (const [bridgeStr, bridge] of Object.entries(parsedBoard.bridges)) {
+        const thisTerm = Logic.not(Encode.str.weightTerm(bridgeStr, 0))
+        const overlappingTerms = bridge.excludesBridges.map(b => Logic.not(Encode.str.weightTerm(b, 0)))
+        const someOverlapping = Logic.or(overlappingTerms)
+        solver.require(Logic.atMostOne(someOverlapping, thisTerm))
+    }
+
     // Each island has the right number of bridges coming out of it
     for (const island of Object.values(parsedBoard.islands)) {
         const numBridges = island.bridges.length
@@ -64,31 +72,58 @@ type ParsedBoard = {
 }
 
 const Encode = {
-    str: {
-        island: (row: number, col: number) => `${row}-${col}`,
-        bridge: (islandStr1: string, islandStr2: string) => {
-            const [lower, higher] = [islandStr1, islandStr2].sort()
+    str: class str {
+        static island(row: number, col: number) {
+            return `${row}-${col}`
+        }
+        static bridge(islandStr1: string, islandStr2: string) {
+            const [island1, island2] = [Encode.obj.island(islandStr1), Encode.obj.island(islandStr2)]
+            const flipped = island1.row >= island2.row && island1.col >= island2.col
+            const [lower, higher] = flipped ? [islandStr2, islandStr1] : [islandStr1, islandStr2]
             return `${lower},${higher}`
-        },
-        weightTerm: (bridgeStr: string, weight: number) => `weight;${bridgeStr};${weight}`,
+        }
+        static weightTerm(bridgeStr: string, weight: number) {
+            return `weight;${bridgeStr};${weight}`
+        }
+
+        static directionTerm(bridgeStr: string, pointingToDst: boolean): string
+        static directionTerm(bridgeStr: string, islandStr: string, pointingIn: boolean): string
+        static directionTerm(bridgeStr: string, islandStrOrPointingToDst: string | boolean, pointingIn?: boolean): string {
+            let pointingToDst: boolean
+            if (typeof islandStrOrPointingToDst === 'boolean') {
+                pointingToDst = islandStrOrPointingToDst
+            } else {
+                const isSrc = bridgeStr.startsWith(islandStrOrPointingToDst + ',')
+                pointingToDst = isSrc !== pointingIn
+            }
+            const pointingDir = pointingToDst ? 0 : 1
+            return `dir;${bridgeStr};${pointingDir}`
+        }
     },
-    obj: {
-        island: (islandStr: string) => {
+    obj: class obj {
+        static island(islandStr: string) {
             const [row, col] = islandStr.split('-')
             return {row: parseInt(row), col: parseInt(col)}
-        },
-        bridge: (bridgeStr: string): PossibleBridge => {
+        }
+        static bridge(bridgeStr: string): PossibleBridge {
             const [srcStr, dstStr] = bridgeStr.split(',')
             const [src, dst] = [Encode.obj.island(srcStr), Encode.obj.island(dstStr)]
             return {src, dst, isVertical: src.col === dst.col}
-        },
-        weightTerm: (term: string): PossibleBridge | null => {
+        }
+        static weightTerm(term: string): PossibleBridge | null {
             const [tag, bridge, weight] = term.split(';')
             if (tag !== 'weight') {
                 return null
             }
             return {...Encode.obj.bridge(bridge), weight: parseInt(weight) as 0|1|2}
-        },
+        }
+        static directionTerm(term: string): {bridge: PossibleBridge, pointingToDst: boolean} | null {
+            const [tag, bridge, direction] = term.split(';')
+            if (tag !== 'dir') {
+                return null
+            }
+            return {bridge: Encode.obj.bridge(bridge), pointingToDst: parseInt(direction) === 0}
+        }
     },
 }
 
