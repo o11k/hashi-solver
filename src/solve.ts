@@ -45,6 +45,22 @@ export default function solve(board: Board): null | Bridge[] {
         solver.require(Logic.exactlyOne(optionFormulas))
     }
 
+    // All islands are connected
+    // These contraints don't completely guarantee it, but they allow us to check it more easily
+
+    // All bridges have a "direction"
+    for (const bridge in parsedBoard.bridges) {
+        const noBridge = Encode.str.weightTerm(bridge, 0)
+        const dir1 = Encode.str.directionTerm(bridge, false)
+        const dir2 = Encode.str.directionTerm(bridge, true)
+        solver.require(Logic.exactlyOne(noBridge, dir1, dir2))
+    }
+    // All islands but one must have at least one bridge "pointing into" them
+    for (const [islandStr, island] of Object.entries(parsedBoard.islands).slice(1)) {
+        const bridgesPointingIn = island.bridges.map(bridge => Encode.str.directionTerm(bridge, islandStr, true))
+        solver.require(Logic.or(bridgesPointingIn))
+    }
+
     const solution = solver.solve()
     if (solution === null) {
         return null
