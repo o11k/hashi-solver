@@ -1,12 +1,14 @@
 import { useState } from "react"
 import HashiBoardInput from "./HashiBoardInput";
+import { Board } from "./types";
 
 export default function App() {
     const [width, setWidth] = useState(8);
     const [height, setHeight] = useState(8);
 
-    const [board, setBoard] = useState<(number | null)[][]>([])
+    const [board, setBoard] = useState<Board>([])
 
+    
     return (<main>
         <table><tbody>
             <tr>

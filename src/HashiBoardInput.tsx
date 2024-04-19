@@ -1,17 +1,17 @@
 import { RefObject, createRef, useEffect, useRef, useState } from "react"
+import { Board } from "./types"
 import './HashiBoardInput.css'
+import { create2DArray } from "./utils"
+
 
 type Props = {
     width: number,
     height: number,
-    onChange?: (board: (number | null)[][]) => unknown | undefined,
-
-    minCellValue? : number | undefined,
-    maxCellValue? : number | undefined,
+    onChange?: (board: Board) => unknown | undefined,
 }
 
-export default function HashiBoardInput({width, height, onChange, minCellValue, maxCellValue}: Props) {
-    const [board, setBoard] = useState<(null | number)[][]>([])
+export default function HashiBoardInput({width, height, onChange}: Props) {
+    const [board, setBoard] = useState<Board>([])
     const cellRefs = useRef<RefObject<HTMLInputElement>[][]>([])
     
     const [focusRow, setFocusRow] = useState<null | number>(null)
@@ -19,8 +19,8 @@ export default function HashiBoardInput({width, height, onChange, minCellValue, 
     
     // Re-create board when dimentions change
     useEffect(() => {
-        setBoard(Array.from({length: height}, () => Array(width).fill(null)))
-        cellRefs.current = Array.from({length: height}, () => Array.from({length: width}, () => createRef()))
+        setBoard(create2DArray(height, width, null))
+        cellRefs.current = create2DArray(height, width, () => createRef())
     }, [width, height])
 
     // Focus on cell
@@ -39,12 +39,12 @@ export default function HashiBoardInput({width, height, onChange, minCellValue, 
 
     const onCellChange = (rowIndex: number, colIndex: number, newValue: number | null) => {
         if (newValue !== null) {
-            newValue = Math.min(maxCellValue ?? Infinity, Math.max(minCellValue ?? -Infinity, newValue % 10))
+            newValue = Math.min(8, Math.max(0, newValue % 10))
         }
 
         const newRow = board[rowIndex].map((value, i) => i === colIndex ? newValue : value)
         const newBoard = board.map((row, i) => i === rowIndex ? newRow : row)
-        setBoard(newBoard)
+        setBoard(newBoard as Board)
     }
 
     const onCellKeyDown = (rowIndex: number, colIndex: number, keyCode: string) => {
